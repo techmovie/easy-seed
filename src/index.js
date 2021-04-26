@@ -1,7 +1,10 @@
 // 入口文件
 import { CURRENT_SITE_NAME, CURRENT_SITE_INFO, PT_SITE, TORRENT_INFO } from './const';
 import { fillTargetForm } from './target';
-import { getSubTitle, getUrlParam, transferImgs, getDoubanInfo, getDoubanLinkByIMDB, getIMDBIdByUrl, getAreaCode, showNotice } from './common';
+import {
+  getSubTitle, getUrlParam, transferImgs, getDoubanInfo,
+  getDoubanLinkByIMDB, getIMDBIdByUrl, getAreaCode, showNotice, getPreciseCategory,
+} from './common';
 import getTorrentInfo from './source';
 // eslint-disable-next-line no-unused-vars
 import style from './style';
@@ -16,7 +19,6 @@ const createSeedDom = (torrentDom, titleDom = '', searchListDom = '') => {
   const targetSitesEnabled = GM_getValue('easy-seed.enabled-target-sites') === undefined ? [] : JSON.parse(GM_getValue('easy-seed.enabled-target-sites'));
   const transferImgClosed = GM_getValue('easy-seed.transfer-img-closed') === undefined ? '' : GM_getValue('easy-seed.transfer-img-closed');
   const siteFaviconClosed = GM_getValue('easy-seed.site-favicon-closed') === undefined ? '' : GM_getValue('easy-seed.site-favicon-closed');
-  console.log('siteFaviconClosed:' + siteFaviconClosed);
   const siteKeys = Object.keys(PT_SITE).sort();
   const siteList = siteKeys.map((siteName, index) => {
     const { url, uploadPath } = PT_SITE[siteName];
@@ -81,15 +83,16 @@ const createSeedDom = (torrentDom, titleDom = '', searchListDom = '') => {
 };
 const getSearchList = () => {
   const searchSitesEnabled = GM_getValue('easy-seed.enabled-search-site-list') === undefined ? [] : JSON.parse(GM_getValue('easy-seed.enabled-search-site-list'));
+  const siteFaviconClosed = GM_getValue('easy-seed.site-favicon-closed') === undefined ? '' : GM_getValue('easy-seed.site-favicon-closed');
   const searchList = Object.keys(PT_SITE).sort().map(siteName => {
     const siteInfo = PT_SITE[siteName];
     if (siteInfo.search) {
       const searchConfig = siteInfo.search;
       const { params, imdbOptionKey, nameOptionKey, path, replaceKey } = searchConfig;
-      const imdbId = getIMDBIdByUrl(TORRENT_INFO.imdbUrl);
+      let imdbId = getIMDBIdByUrl(TORRENT_INFO.imdbUrl);
       let searchKeyWord = '';
       const { movieAkaName, movieName } = TORRENT_INFO;
-      if (imdbId && !siteName.match('nzb')) {
+      if (imdbId && !siteName.match(/nzb|HDF|bB/)) {
         if (replaceKey) {
           searchKeyWord = imdbId.replace(replaceKey[0], replaceKey[1]);
         } else {
@@ -97,6 +100,7 @@ const getSearchList = () => {
         }
       } else {
         searchKeyWord = movieAkaName || movieName;
+        imdbId = '';
       }
 
       let searchParams = Object.keys(params).map(key => {
@@ -118,7 +122,8 @@ const getSearchList = () => {
         if (siteName.match('nzb')) {
           url = url.replace(/{name}/, searchKeyWord);
         }
-        return `<li><a href="${url}" target="_blank">${siteName}</a> <span>|</span></li>`;
+        const favIcon = (siteFaviconClosed === '' && PT_SITE[siteName].icon) ? PT_SITE[siteName].icon : '';
+        return `<li><a href="${url}" target="_blank">${favIcon} ${siteName}</a> <span>|</span></li>`;
       }
     }
     return '';
@@ -220,7 +225,7 @@ const saveSetting = () => {
   $("input[name='batch-seed-site-enabled']:checked").each(function () {
     batchSeedSiteEnabled.push($(this).val());
   });
-  console.log(targetSitesEnabled);
+
   try {
     GM_setValue('easy-seed.enabled-target-sites', JSON.stringify(targetSitesEnabled));
     GM_setValue('easy-seed.enabled-search-site-list', JSON.stringify(searchSitesEnabled));
@@ -331,15 +336,8 @@ const updateTorrentInfo = (data) => {
   if (areaMatch) {
     TORRENT_INFO.area = getAreaCode(areaMatch);
   }
-  let category = TORRENT_INFO.category;
-  if (category === 'movie') {
-    if (desc.match(/动画/)) {
-      category = 'cartoon';
-    } else if (desc.match(/纪录/)) {
-      category = 'documentary';
-    }
-    TORRENT_INFO.category = category;
-  }
+  const category = TORRENT_INFO.category;
+  TORRENT_INFO.category = getPreciseCategory(TORRENT_INFO, category);
 };
 const filterBluTorrent = (imdb = '', name = '') => {
   if (imdb) {
@@ -377,11 +375,11 @@ const fillSearchImdb = () => {
 const insertTorrentPage = () => {
   let torrentInsertDom = $(CURRENT_SITE_INFO.seedDomSelector);
   const searchList = getSearchList();
-  const searchListDom = `<td class="rowhead nowrap title-td">
+  const searchListDom = `<td class="rowhead nowrap title-td detailsleft">
   <h4>快速检索</h4>
   </td>
-  <td class="rowfollow"> 
-  <ul class="search-list">
+  <td class="rowfollow detailshash"> 
+  <ul class="search-list ">
     ${searchList.join('')}
   </ul>
   </td>`;
@@ -391,12 +389,25 @@ const insertTorrentPage = () => {
   </path>
   </svg>
   </span></h4>`;
-  if (CURRENT_SITE_INFO.siteType === 'NexusPHP' || CURRENT_SITE_NAME.match(/BeyondHD|TTG|Blutopia|HDPOST|ACM/)) {
+  if (CURRENT_SITE_INFO.siteType === 'NexusPHP' || CURRENT_SITE_NAME.match(/BeyondHD|TTG|Blutopia|HDPOST|ACM|KG/)) {
     const trDom = `<tr>
     <td class="rowhead nowrap title-td">
     ${easySeedTitleDom}
     </td>
     <td class="rowfollow easy-seed-td"></td>
+    </tr>
+    <tr>
+    ${searchListDom}
+    </tr>`;
+    torrentInsertDom.after(trDom);
+    torrentInsertDom = $('.easy-seed-td');
+  }
+  if (CURRENT_SITE_NAME === 'HDT') {
+    const trDom = `<tr>
+    <td class="detailsleft" title-td" align="right">
+    ${easySeedTitleDom}
+    </td>
+    <td class="detailshash easy-seed-td" align="center"></td>
     </tr>
     <tr>
     ${searchListDom}
