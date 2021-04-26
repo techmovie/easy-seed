@@ -1,0 +1,99 @@
+url: 'https://pt.hdupt.com'
+host: hdupt.com
+siteType: NexusPHP
+icon: '<svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" width="11px" height="11px" viewBox="0 0 20 20" enable-background="new 0 0 20 20" xml:space="preserve">  <image id="image0" width="20" height="20" x="0" y="0"    href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAAUCAYAAACNiR0NAAAABGdBTUEAALGPC/xhBQAAACBjSFJNAAB6JgAAgIQAAPoAAACA6AAAdTAAAOpgAAA6mAAAF3CculE8AAAABmJLR0QA/wD/AP+gvaeTAAAAB3RJTUUH5QQKBy8jpVQ5rwAABFlJREFUOMs9lElvXMcBhL9e3j4LZ6gR6SFpLhITWU4gKTSyIRdHgZBTfpN/UZBrTrEBI4ccAmRBLjYgWZFEUZztLTNv6dfdOVAI6lKnQhUKVeIPFydeSokQAqUU86NPePyTSx59/oD9/QFCAEhQA2Q6QURjOgP//vs/+POf/shmtcYLiUfgvUdN48FXjZP0QvOjx5c8f/FrLh/OiAOLNS3O1HR1gbM9QkY4r7HWs394xGCyR1WWrLeGzkmcDFDDwfQrGUb87OkjXjz/gulQ0m+XeG9x3mO6FtM2dKan2Va024reGHpCDo+OOdiL0GHKphHIcIgeTA958ctHfPmLh0i34+b1W7Q3hFFI0xlUlCKlQoUe6x29rXH+hmBUk+7N6KxkOJ5yehpzu2nRz3/zhC9//pBYtbx/ec3bl69wXc1klLLZ9axqwafn53jZkiZDrn94xfHZGYYcnU3wwNff/oXj8yuy0R76d7+6JFaecl1S5iVKK9J4iJWCk4tT5iJmnTfsjOX9as3X3/yNLxYfuHr2BKtb9sZzjk9OeP3uB84uforeFRtcqGi7HofEiwCnY1abNYv8FYfzQzSCemepW8vDkwmZavjvd/+iWP+VbHbO1WdPWVXf4zzodtdQrXdUZYlH8iFvuF0uMX3Htqg4Wu44nB9Q5i1CaT6dZbi25s37FZvSsHj7PU+GF1w9u+LNokW/eXnDeDagqg14i1URr2/f0vUObywqbHAqp1hucb5nfqBpasdt0bIVI75b52z/+R9+/9tjpFLI63crwnTM/aMzVoVhU3UEcYIOI5I0w1rB8npNvioo25Ztp1hXnrIVOBWRjWc0dU1RNQgp0Pkq5/rNguHekKKs2eQlaRKjXI0wHtEZTNNRNTXjyQFNo+gaSW8EWg/Znw7IhiNaGyKQaNc23F7fUOxKrO2YjDKqakfvHML1aC/AexIdEBByuyhZFTmdjrE7x/mDU87OT+/miUCbvmNbViSjmPnhPcp8w2axwjQN2nmQIUpp9pOMUGl6oTAyIBhO+ezzZ5xdXKD13RcIAdpYg7UtUQB917Je5pjWIKxFeEU6mqC8QFpDNrrP+JMfcxanDGbHjOcH6NgjhUAiEEIgvfc02x1lXrL4sKTKS2xrwAm0CkkmBzROki9zgnjK+PwpgQyJtCAbSAZZRJaGpGlAmgToNA5o6o5iVdK3Dar3RCrAek+UjghHM+Ryzfj+KcHsnGg8xfdL9g5HJEmA+OjMA8IL9CgOabYFN+9uieMI7yVeWIIoYrg/xxrBeP+M8fEDiDPiCO4/vkSFdyXcAe6OUyBT4UiVp9gULFYFTddje0iye0gZY27ek907ITu+JBuNiBOPDhXcyQDgAbwHPDrWinESkemGqjXsrCUMIorVmmaZk4QZu+2aqQcZBCgl8fiPEfnI/q+KFl6QRSF7SURtGpwVWCydLSFMcL0nXrzGrG+I9oc4LzEteOfw3uOtA+9xzoJ1/A9EnjRTvBUMaAAAACV0RVh0ZGF0ZTpjcmVhdGUAMjAyMS0wNC0xMFQwNzo0NzozNSswMDowMIa7gnQAAAAldEVYdGRhdGU6bW9kaWZ5ADIwMjEtMDQtMTBUMDc6NDc6MzUrMDA6MDD35jrIAAAAAElFTkSuQmCC" /></svg>'
+asSource: true
+asTarget: true
+seedDomSelector: '#top~table:first>tbody>tr:nth-child(3)'
+uploadPath: /upload.php
+search: 
+  path: /torrents.php
+  imdbOptionKey: '4'
+  nameOptionKey: '0'
+  params:
+    incldead: '0'
+    search_area: '{optionKey}'
+    search: '{imdb}'
+    sort: '5'
+    type: desc
+name:
+  selector: '#name'
+subtitle:
+  selector: 'input[name="small_descr"]'
+description:
+  selector: '#descr'
+anonymous: 
+  selector: 'input[name="uplver"]'
+category:
+  selector: '#browsecat'
+  map:
+    movie: '401'
+    tv: '402'
+    tvPack: '402'
+    documentary: '404'
+    concert: '406'
+    sport: '407'
+    cartoon: '405'
+    variety: '403'
+videoCodec:
+  selector: 'select[name="codec_sel"]'
+  map:
+    h264: '1'
+    hevc: '14'
+    x264: '16'
+    x265: '14'
+    h265: '14'
+    mpeg2: '18'
+    mpeg4: '18'
+    vc1: '2'
+    xvid: '3'
+    dvd: '18'
+audioCodec:
+  selector: 'select[name="audiocodec_sel"]'
+  map:
+    aac: '6'
+    ac3: '2'
+    dd: '2'
+    dd+: '2'
+    flac: '7'
+    dts: '4'
+    truehd: '3'
+    lpcm: '11'
+    dtshdma: '1'
+    atmos: '17'
+    dtsx: '16'
+videoType:
+  selector: 'select[name="medium_sel"]'
+  map:
+    uhdbluray: '11'
+    bluray: '1'
+    remux: '3'
+    encode: '7'
+    web: '10'
+    hddvd: '2'
+    hdtv: '5'
+    dvd: '6'
+    dvdrip: '6'
+    other: '0'
+resolution:
+  selector: 'select[name="standard_sel"]'
+  map:
+    2160p: '5'
+    1080p: '1'
+    1080i: '2'
+    720p: '3'
+    576p: '4'
+    480p: '4'
+area:
+  selector: 'select[name="processing_sel"]'
+  map:
+    CN: '1'
+    US: '2'
+    EU: '2'
+    HK: '3'
+    TW: '3'
+    JP: '4'
+    KR: '5'
+    IND: '6'
+    SEA: '8'
+    OT: '7'

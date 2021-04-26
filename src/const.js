@@ -1,4 +1,4 @@
-import { PT_SITE } from './config.yaml';
+import { PT_SITE } from './config.json';
 const TORRENT_INFO = {
   title: '', // 标题
   subtitle: '', // 副标题
@@ -34,6 +34,7 @@ const TORRENT_INFO = {
   sourceSiteType: '', // 种子来源站点类型
   size: '', // 种子大小 转换成 Bytes
   isForbidden: false, // 是否禁转
+  poster: '', // 海报
 };
 
 const DOUBAN_SEARCH_API = 'https://omit.mkrobot.org/movie/infos';
@@ -59,7 +60,19 @@ const getSiteName = (host) => {
     }
   }
 };
-
+const getSortedSiteKeys = () => {
+  return Object.keys(PT_SITE).sort((a, b) => {
+    const isChineseReg = /[\u4e00-\u9fa5]+/;
+    if (isChineseReg.test(a) && !isChineseReg.test(b)) {
+      return 1;
+    }
+    if (!isChineseReg.test(a) && isChineseReg.test(b)) {
+      return -1;
+    }
+    return a.toLowerCase().localeCompare(b.toLowerCase());
+  });
+};
+const SORTED_SITE_KEYS = getSortedSiteKeys();
 const CODES_ARRAY = ['atmos', 'dtshdma', 'aac', 'ac3', 'dd+', 'dd', 'dtsx', 'dts', 'truehd', 'flac', 'lpcm'];
 const EUROPE_LIST = ['Albania', 'Andorra', 'Armenia', 'Austria', 'Azerbaijan', 'Belarus', 'Belgium', 'Bosnia and Herzegovina', 'Bulgaria', 'Croatia', 'Cyprus', 'Czech Republic', 'Denmark', 'Estonia', 'Finland', 'France', 'Georgia', 'Germany', 'Greece', 'Hungary', 'Iceland', 'Ireland', 'Italy', 'Kazakhstan', 'Latvia', 'Liechtenstein', 'Lithuania', 'Luxembourg', 'Malta', 'Moldova', 'Monaco', 'Montenegro', 'Netherlands', 'North Macedonia', 'Norway', 'Poland', 'Portugal', 'Romania', 'Russia', 'San Marino', 'Serbia', 'Slovakia', 'Slovenia', 'Spain', 'Sweden', 'Switzerland', 'Turkey', 'Ukraine', 'United Kingdom', 'UK', 'Vatican City'];
 const CURRENT_SITE_NAME = getSiteName(location.host);
@@ -78,5 +91,6 @@ export {
   TMDB_API_KEY,
   HDB_TEAM,
   DOUBAN_SUGGEST_API,
+  SORTED_SITE_KEYS,
 }
 ;

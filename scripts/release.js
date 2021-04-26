@@ -22,17 +22,23 @@ if (currentBranch !== CURRENT_BRANCH) {
   process.exit();
 }
 checkGitTreeClean();
-bump().then(data => {
+bump({
+  tag: false,
+  commit: 'chore: update pkg version %s',
+}).then(data => {
   const { newVersion } = data;
   const spinner = ora({
     text: '📦 打包中...',
     color: 'blue',
   }).start();
-  execa.sync('npm', ['run', 'build']);
-  spinner.text = '提交代码...';
+  execa.sync('yarn', ['changelog']);
+  execa.sync('yarn', ['build']);
+  spinner.text = '🔨 提交代码...';
   spinner.color = 'green';
   execa.sync('git', ['add', '.']);
-  execa.sync('git', ['commit', '-m', `feat(new version): ${newVersion}`]);
+  execa.sync('git', ['commit', '-m', `chore(release): ${newVersion}`]);
   execa.sync('git', ['push']);
-  spinner.succeed(`🎉 v${newVersion}发布成功!`);
+  setTimeout(() => {
+    spinner.succeed(`🎉 v${newVersion}发布成功!`);
+  }, 600);
 });

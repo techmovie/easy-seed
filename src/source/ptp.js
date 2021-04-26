@@ -1,5 +1,9 @@
 import { CURRENT_SITE_NAME, CURRENT_SITE_INFO, TORRENT_INFO } from '../const';
-import { getUrlParam, formatTorrentTitle, getAreaCode, getInfoFromMediaInfo, getInfoFromBDInfo, getBDInfoFromBBCode, replaceRegSymbols } from '../common';
+import {
+  getUrlParam, formatTorrentTitle, getAreaCode,
+  getInfoFromMediaInfo, getInfoFromBDInfo,
+  replaceRegSymbols, getBDInfoOrMediaInfo,
+} from '../common';
 
 export default () => {
   const torrentId = getUrlParam('torrentid');
@@ -12,13 +16,16 @@ export default () => {
   const ptpMovieTitle = $('.page__title').text().match(/]?([^[]+)/)[1]?.trim();
   const [movieName, movieAkaName = ''] = ptpMovieTitle.split(' AKA ');
   const mediaInfoArray = [];
-  torrentDom.find('.mediainfo.mediainfo--in-release-description').next('blockquote:contains(Codec ID)').each(function (index, item) {
-    mediaInfoArray.push($(this).text());
+  torrentDom.find('.mediainfo.mediainfo--in-release-description').next('blockquote').each(function () {
+    const textContent = $(this).text();
+    if (textContent.match(/(Codec\s*ID)|mpls|(Stream\s*size)/i)) {
+      mediaInfoArray.push(textContent);
+    }
   });
   TORRENT_INFO.movieName = movieName;
   TORRENT_INFO.movieAkaName = movieAkaName;
   TORRENT_INFO.imdbUrl = $('#imdb-title-link')?.attr('href') ?? '';
-  TORRENT_INFO.year = $('.page__title').text().match(/\[(\d+)\]/)[2];
+  TORRENT_INFO.year = $('.page__title').text().match(/\[(\d+)\]/)[1];
   const torrentHeaderDom = $(`#group_torrent_header_${torrentId}`);
   TORRENT_INFO.category = getPTPType();
   const screenshots = getPTPImage(torrentDom);
@@ -29,17 +36,17 @@ export default () => {
     const [codes, container, source, ...otherInfo] = infoArray;
     const isRemux = otherInfo.includes('Remux');
     TORRENT_INFO.videoType = source === 'WEB' ? 'web' : getVideoType(container, isRemux, codes, source);
-    const bdinfo = getBDInfoFromBBCode(descriptionData);
     const isBluray = TORRENT_INFO.videoType.match(/bluray/i);
+    const { bdinfo, mediaInfo } = getBDInfoOrMediaInfo(descriptionData);
+    const mediaInfoOrBDInfo = isBluray ? bdinfo : mediaInfo;
     const getInfoFunc = isBluray ? getInfoFromBDInfo : getInfoFromMediaInfo;
-    const mediaInfoOrBDInfo = isBluray ? bdinfo : mediaInfoArray.join('\n');
     TORRENT_INFO.mediaInfo = mediaInfoOrBDInfo;
-    const { videoCodec, audioCodec, fileName = '', resolution, mediaTags } = getInfoFunc(mediaInfoOrBDInfo);
+    const { videoCodec, audioCodec, resolution, mediaTags } = getInfoFunc(mediaInfoOrBDInfo);
     TORRENT_INFO.videoCodec = videoCodec;
     TORRENT_INFO.audioCodec = audioCodec;
     TORRENT_INFO.resolution = resolution;
     TORRENT_INFO.tags = mediaTags;
-    let torrentName = fileName || torrentHeaderDom.data('releasename'); // 圆盘没有fileName
+    let torrentName = torrentHeaderDom.data('releasename');
     torrentName = formatTorrentTitle(torrentName);
     TORRENT_INFO.title = torrentName;
     TORRENT_INFO.source = getPTPSource(source, codes, resolution);
@@ -125,7 +132,11 @@ const getDescription = (id) => {
   });
 };
 const formatDescriptionData = (data, screenshots, mediaInfoArray) => {
-  let descriptionData = data;
+  let descriptionData = data.replace(/\r\n/g, '\n');
+  // 将每行前后的空格删除 避免bdinfo匹配失败
+  descriptionData = descriptionData.split('\n').map(line => {
+    return line.trim();
+  }).join('\n');
   screenshots.forEach(screenshot => {
     const regStr = new RegExp(`\\[img\\]${screenshot}\\[\\/img\\]`, 'i');
     if (!descriptionData.match(regStr)) {
@@ -133,10 +144,12 @@ const formatDescriptionData = (data, screenshots, mediaInfoArray) => {
     }
   });
   descriptionData = descriptionData.replace(/\[(\/)?mediainfo\]/g, '[$1quote]');
-  descriptionData = descriptionData.replace(/\[hide(=(.+?))?\]/g, '$2: [quote]').replace(/\[\/hide\]/g, '[/quote]');
+  descriptionData = descriptionData.replace(/\[(\/)?hide(?:=(.+?))?\]/g, function (match, p1, p2) {
+    const slash = p1 || '';
+    return p2 ? `${p2}: [${slash}quote]` : `[${slash}quote]`;
+  });
   descriptionData = descriptionData.replace(/\[(\/)?pre\]/g, '[$1quote]');
   descriptionData = descriptionData.replace(/\[align(=(.+?))\]((.|\s)+?)\[\/align\]/g, '[$2]$3[/$2]');
-  descriptionData = descriptionData.replace(/\r\n/g, '\n');
   const comparisonArray = descriptionData.match(/\[comparison=(?:.+?)\]((.|\n|\s)+?)\[\/comparison\]/g) || [];
   let comparisonImgArray = [];
   comparisonArray.forEach(item => {

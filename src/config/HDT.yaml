@@ -1,0 +1,170 @@
+url: 'https://hd-torrents.org'
+host: hd-torrents.org
+siteType: HDT
+icon: '<svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" width="11px" height="11px" viewBox="0 0 20 20" enable-background="new 0 0 20 20" xml:space="preserve">  <image id="image0" width="20" height="20" x="0" y="0"    href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABQAAAAUCAQAAAAngNWGAAAABGdBTUEAALGPC/xhBQAAACBjSFJNAAB6JgAAgIQAAPoAAACA6AAAdTAAAOpgAAA6mAAAF3CculE8AAAAAmJLR0QA/4ePzL8AAAAHdElNRQflBAoHLibMJfxhAAABTklEQVQoz4XSz2oTURzF8c+dyUwSqSUKitJuqq5cFxfWt/BpfCxfwa2CC3VjsUWptYUqJmlmzEzujIuk+SNIzg/u6svh3PP7BSQSrS0KEq+8UG0DSb3Wbp/Ounn6j0erWWZagpkducDSBGqlWrsC+/btm4mIolpEpuvKD5N1cOBYgSBq5DJRqWvP3RUYpGpXDlz76UBuz67SNx/RE7Q3YKvS9cxXlUMDDxUmHrsUzVYgqVyw44GhXbkzb5ReemRsuvp1kMpE9z13pO+DPxpDx3pG6s16glThrU+eKhWmOnouVIuiOjfVRsHQqXe6BvqeqGW+CxKYv/N6K5+dmzpz4rc7bvviAtmq8EYjl3svap0Izt0ycSnom61vpjBxqFSj0WrQc0/fL+P1jIVTI6l2EaTRChLRyPU62BgrZMLGBbeL7W/UMz+G/yvZftlz/QVf65MTdoZVvQAAACV0RVh0ZGF0ZTpjcmVhdGUAMjAyMS0wNC0xMFQwNzo0NjozOCswMDowMAiuiIoAAAAldEVYdGRhdGU6bW9kaWZ5ADIwMjEtMDQtMTBUMDc6NDY6MzgrMDA6MDB58zA2AAAAAElFTkSuQmCC" /></svg>'
+asSource: true
+asTarget: true
+seedDomSelector: '.listadetails>tbody>tr:nth-child(2)'
+needDoubanInfo: true
+uploadPath: /upload.php
+search: 
+  path: /torrents.php
+  imdbOptionKey: '2'
+  nameOptionKey: '3'
+  params:
+    search: '{imdb}'
+    options: '{optionKey}'
+    order: size
+    by: DESC
+name:
+  selector: 'input[name="filename"]'
+imdb: 
+  selector: 'input[name="infosite"]'
+description: 
+    selector: 'textarea[name="info"]'
+tags: 
+  HDR: 'input[name="HDR10"]'
+  HDR10+: 'input[name="HDR10Plus"]'
+  DolbyVision: 'input[name="DolbyVision"]'
+anonymous: 
+  selector: 'input[name="anonymous"][value="true"]'
+category:
+  selector: 'select[name="category"]'
+  map:
+    movie: 
+      - '70'
+      - '1'
+      - '71'
+      - '2'
+      - '64'
+      - '5'
+      - '3'
+      - '63'
+    tv: 
+      - '72'
+      - '59'
+      - '73'
+      - '60'
+      - '65'
+      - '30'
+      - '38'
+    tvPack:
+      - '72'
+      - '59'
+      - '73'
+      - '60'
+      - '65'
+      - '30'
+      - '38'
+    documentary: 
+      - '70'
+      - '1'
+      - '71'
+      - '2'
+      - '64'
+      - '5'
+      - '3'
+      - '63'
+    cartoon: 
+      - '70'
+      - '1'
+      - '71'
+      - '2'
+      - '64'
+      - '5'
+      - '3'
+      - '63'
+    concert: 
+      - '61'
+      - '62'
+      - '66'
+      - '57'
+      - '45'
+      - '44'
+    variety: 
+      - '72'
+      - '59'
+      - '73'
+      - '60'
+      - '65'
+      - '30'
+      - '38'
+videoType:
+  map:
+    uhdbluray:
+      - '70'
+      - '72'
+    bluray: 
+      - '1'
+      - '59'
+      - '61'
+    remux: 
+      - '71'
+      - '2'
+      - '62'
+      - '73'
+      - '60'
+    encode: 
+      - '64'
+      - '5'
+      - '3'
+      - '65'
+      - '30'
+      - '38'
+      - '66'
+      - '57'
+      - '45'
+    web: 
+      - '64'
+      - '5'
+      - '3'
+      - '65'
+      - '30'
+      - '38'
+      - '66'
+      - '57'
+      - '45'
+    hdtv: 
+      - '64'
+      - '5'
+      - '3'
+      - '65'
+      - '30'
+      - '38'
+      - '66'
+      - '57'
+      - '45'
+resolution:
+  map:
+    2160p: 
+      - '70'
+      - '72'
+      - '71'
+      - '73'
+      - '64'
+      - '65'
+      - '66'
+    1080p: 
+      - '1'
+      - '59'
+      - '61'
+      - '2'
+      - '60'
+      - '62'
+      - '5'
+      - '30'
+      - '57'
+    1080i: 
+      - '1'
+      - '59'
+      - '61'
+      - '2'
+      - '60'
+      - '62'
+      - '5'
+      - '30'
+      - '57'
+    720p: 
+      - '3'
+      - '38'
+      - '45'

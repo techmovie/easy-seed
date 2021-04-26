@@ -1,5 +1,9 @@
 import { CURRENT_SITE_NAME, CURRENT_SITE_INFO, TORRENT_INFO } from '../const';
-import { formatTorrentTitle, getSize, getAreaCode, getFilterBBCode, getSourceFromTitle, getScreenshotsFromBBCode, getTagsFromSubtitle, getInfoFromBDInfo, getInfoFromMediaInfo, getAudioCodecFromTitle, getVideoCodecFromTitle, getBDInfoFromBBCode, getPreciseCategory } from '../common';
+import {
+  formatTorrentTitle, getSize, getAreaCode, getFilterBBCode, getSourceFromTitle,
+  getScreenshotsFromBBCode, getTagsFromSubtitle, getInfoFromBDInfo, getInfoFromMediaInfo,
+  getAudioCodecFromTitle, getVideoCodecFromTitle, getBDInfoOrMediaInfo, getPreciseCategory,
+} from '../common';
 
 /**
  * 获取 NexusPHP 默认数据
@@ -97,7 +101,7 @@ export default () => {
   const { category, videoType, videoCodec, audioCodec, resolution, processing, size } = getMetaInfo(metaInfo);
   TORRENT_INFO.sourceSite = CURRENT_SITE_NAME;
   TORRENT_INFO.sourceSiteType = CURRENT_SITE_INFO.siteType;
-  const doubanUrl = descriptionBBCode.match(/https:\/\/(movie\.)?douban.com\/subject\/\d+/)?.[0];
+  const doubanUrl = descriptionBBCode.match(/https:\/\/((movie|book)\.)?douban.com\/subject\/\d+/)?.[0];
   if (doubanUrl) {
     TORRENT_INFO.doubanUrl = doubanUrl;
   }
@@ -142,11 +146,14 @@ export default () => {
     if (descriptionBBCode.match(/VIDEO\s*(\.)?CODEC/i)) {
       const matchCodec = descriptionBBCode.match(/VIDEO\s*(\.)?CODEC\.*:?\s*([^\s_,]+)?/i)?.[2];
       if (matchCodec) {
-        TORRENT_INFO.videoCodec = matchCodec.replace(/\.|-/g, '').toLowerCase();
+        let videoCodec = matchCodec.replace(/\.|-/g, '').toLowerCase();
+        videoCodec = videoCodec.match(/hevc/i) ? 'x265' : videoCodec;
+        videoCodec = videoCodec.match(/mpeg4/i) ? 'x264' : videoCodec;
+        TORRENT_INFO.videoCodec = videoCodec;
       }
     }
   } else {
-    TORRENT_INFO.videoCodec = getVideoCodecFromTitle(videoCodec || TORRENT_INFO.title, TORRENT_INFO.videoType);
+    TORRENT_INFO.videoCodec = getVideoCodecFromTitle(TORRENT_INFO.title || videoCodec, TORRENT_INFO.videoType);
   }
   TORRENT_INFO.resolution = getResolution(resolution || TORRENT_INFO.title);
   TORRENT_INFO.audioCodec = getAudioCodecFromTitle(audioCodec || TORRENT_INFO.title);
@@ -208,37 +215,12 @@ const getMetaInfo = (metaInfo) => {
     size,
   };
 };
-// 获取完整bdinfo或mediainfo
-const getBDInfoOrMediaInfo = (bbcode) => {
-  const quoteList = bbcode.match(/\[quote\](.|\n)+?\[\/quote\]/g) ?? [];
-  let bdinfo = ''; let mediaInfo = '';
-  for (let i = 0; i < quoteList.length; i++) {
-    const quoteContent = formatQuoteContent(quoteList[i]);
-    if (quoteContent.match(/Disc\s?Size|\.mpls/i)) {
-      bdinfo += quoteContent;
-    }
-    if (quoteContent.match(/Unique\s*ID/i)) {
-      mediaInfo += quoteContent;
-    }
-  }
-  // 有一些bdinfo是没有放在引用里的
-  if (!bdinfo) {
-    bdinfo = getBDInfoFromBBCode(bbcode);
-  }
-  return {
-    bdinfo,
-    mediaInfo,
-  };
-};
-const formatQuoteContent = (content) => {
-  return content.replace(/\[\/?(quote)\]{1}?/g, '').replace(/\u200D/g, '');
-};
 const getMetaValue = (key, metaInfo) => {
   let regStr = `(${key}):\\s?([^\u4e00-\u9fa5]+)?`;
   if (key.match(/大小/)) {
     regStr = `(${key}):\\s?((\\d|\\.)+\\s+(G|M|T|K)(i)?B)`;
   }
-  if ((CURRENT_SITE_NAME.match(/KEEPFRDS|TJUPT|PTSBAO|PTHome|HDTime|BTSCHOOL|TLF|HDAI/)) && key.match(/类型/)) {
+  if ((CURRENT_SITE_NAME.match(/KEEPFRDS|TJUPT|PTSBAO|PTHome|HDTime|BTSCHOOL|TLF|HDAI|SoulVoice/)) && key.match(/类型/)) {
     regStr = `(${key}):\\s?([^\\s]+)?`;
   }
   if (CURRENT_SITE_NAME === 'PTer' && key.match(/类型|地区/)) {
@@ -316,6 +298,8 @@ const getCategory = (category) => {
     return 'app';
   } else if (category.match(/电子书|小说|Ebook/ig)) {
     return 'ebook';
+  } else if (category.match(/有声书|AudioBook/ig)) {
+    return 'audiobook';
   } else if (category.match(/杂志|magazine/ig)) {
     return 'magazine';
   } else if (category.match(/漫画|comics/ig)) {

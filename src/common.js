@@ -3,7 +3,7 @@
 import { CURRENT_SITE_NAME, EUROPE_LIST, TMDB_API_KEY, TMDB_API_URL, PT_GEN_API, DOUBAN_SEARCH_API, DOUBAN_SUGGEST_API, CURRENT_SITE_INFO } from './const';
 const formatTorrentTitle = (title) => {
   // 保留5.1 H.264中间的点
-  return title.replace(/(?<!(([^\d]+\d{1})|([^\w]+H)))(\.)/ig, ' ').replace(/\.(?!(\d+))/, ' ').trim();
+  return title.replace(/\.(?!(\d+))/ig, " ").replace(/\.(?=\d{4}|48|57|72|2k|4k|7.1|6.1|5.1|4.1|2.0|1.0)/ig, " ").trim();
 };
 const getDoubanInfo = (doubanUrl) => {
   return new Promise((resolve, reject) => {
@@ -17,11 +17,15 @@ const getDoubanInfo = (doubanUrl) => {
             if (data && data.success) {
               resolve(data);
             } else {
-              getAnotherDoubanInfo(doubanUrl).then(res => {
-                resolve(res);
-              }).catch(error => {
-                reject(new Error(error.message));
-              });
+              if (doubanUrl.match(/\/book/)) {
+                reject(new Error(data.error));
+              } else {
+                getAnotherDoubanInfo(doubanUrl).then(res => {
+                  resolve(res);
+                }).catch(error => {
+                  reject(new Error(error.message));
+                });
+              }
             }
           },
         });
@@ -186,9 +190,35 @@ const getDoubanLinkBySuggest = (imdbId) => {
     });
   });
 };
-const transferImgs = (screenshots, isNSFW) => {
+const getIMDBData = (imdbUrl) => {
   return new Promise((resolve, reject) => {
-    const params = encodeURI(`imgs=${screenshots}&content_type=${isNSFW ? 1 : 0}&max_th_size=300`);
+    try {
+      if (!imdbUrl) {
+        throw new Error('缺少IMDB信息');
+      }
+      GM_xmlhttpRequest({
+        method: 'GET',
+        url: `${PT_GEN_API}?url=${imdbUrl}`,
+        onload (res) {
+          const data = JSON.parse(res.responseText);
+          if (data && data.success) {
+            resolve(data);
+          } else {
+            reject(data.error || '请求失败');
+          }
+        },
+        onerror (res) {
+          console.log(res);
+        },
+      });
+    } catch (error) {
+      reject(new Error(error.message));
+    }
+  });
+};
+const transferImgs = (screenshots) => {
+  return new Promise((resolve, reject) => {
+    const params = encodeURI(`imgs=${screenshots}&content_type=1&max_th_size=300`);
     try {
       GM_xmlhttpRequest({
         url: 'https://pixhost.to/remote/',
@@ -206,7 +236,7 @@ const transferImgs = (screenshots, isNSFW) => {
           let imgResultList = [];
           if (data && data.length) {
             imgResultList = JSON.parse(data[2]).images;
-            if (imgResultList.length.length < 1) {
+            if (imgResultList.length < 1) {
               throw new Error(new Error('上传失败，请重试'));
             }
             resolve(imgResultList);
@@ -222,11 +252,12 @@ const transferImgs = (screenshots, isNSFW) => {
 };
 // 获取更加准确的分类
 const getPreciseCategory = (torrentInfo, category) => {
-  const { description, title, subtitle } = torrentInfo;
+  const { description, title, subtitle, doubanInfo } = torrentInfo;
+  const movieGenre = (description + doubanInfo).match(/(类\s+别)\s+(.+)?/)?.[2] ?? '';
   if (category === 'movie') {
-    if (description.match(/动画/)) {
+    if (movieGenre.match(/动画/)) {
       category = 'cartoon';
-    } else if (description.match(/纪录/)) {
+    } else if (movieGenre.match(/纪录/)) {
       category = 'documentary';
     }
   } else if (category?.match(/tv/)) {
@@ -296,27 +327,49 @@ const getVideoCodecFromTitle = (title, videoType = '') => {
   }
   return '';
 };
+
+const getFilterImages = (bbcode) => {
+  if (!bbcode) {
+    return [];
+  }
+  let allImages = bbcode.match(/(\[url=(http(s)*:\/{2}.+?)\])?\[img\](.+?)\[\/img](\[url\])?/g);
+  if (allImages && allImages.length > 0) {
+    allImages = allImages.map(img => {
+      if (img.match(/\[url=.+?\]/)) {
+        return img + '[/url]';
+      }
+      return img;
+    });
+    // 过滤imdb、豆瓣、chd、柠檬无关图片
+    return allImages.filter(item => {
+      return !item.match(/MoreScreens|PTer\.png|CS\.png|GDJT|Ourbits_info|GDJT|douban|logo|(2019\/03\/28\/5c9cb8f8216d7\.png)|_front|(info_01\.png)|(screens\.png)|(04\/6b\/Ggp5ReQb_o)|(ce\/e7\/KCmGFMOB_o)/);
+    });
+  }
+  return [];
+};
 /*
 * 过滤真实原始截图地址
 * 如果原图地址没有文件名后缀，截图地址则为缩略图地址
 * */
 const getScreenshotsFromBBCode = (bbcode) => {
-  let allImages = bbcode.match(/(\[url=(http(s)*:\/{2}.+?)\])?\[img\](.+?)\[\/img](\[url\])?/g);
+  const allImages = getFilterImages(bbcode);
   if (allImages && allImages.length > 0) {
-    // 过滤imdb、豆瓣、chd、柠檬无关图片
-    allImages = allImages.filter(item => {
-      return !item.match(/MoreScreens|Ourbits_info|GDJT|douban|logo|(2019\/03\/28\/5c9cb8f8216d7\.png)|_front|(info_01\.png)|(screens\.png)|(04\/6b\/Ggp5ReQb_o)|(ce\/e7\/KCmGFMOB_o)/);
-    });
     return allImages.map(item => {
       let imgUrl = '';
       if (item.match(/\[url=http(s)*:.+/)) {
         imgUrl = item.match(/=(([^\]])+)/)?.[1];
+        if (!imgUrl.match(/\.(jpg|png|gif|bmp)$/)) {
+          imgUrl = item.match(/img\](([^[])+)/)?.[1];
+        } else if (item.match(/https:\/\/pixhost\.to/)) {
+          imgUrl = imgUrl.replace(/(pixhost\.to)\/show/, 'img53.$1/images');
+        }
       } else {
         imgUrl = item.match(/img\](([^[])+)/)?.[1];
       }
       return imgUrl;
     });
   }
+  return '';
 };
 // 从标题获取source
 const getSourceFromTitle = (title) => {
@@ -409,14 +462,27 @@ const getTMDBIdByIMDBId = (imdbid) => {
           if (res.status !== 200 && (!isMovie && !isTV)) {
             reject(new Error('请求失败'));
           }
-          const id = isMovie ? data.movie_results[0].id : data.tv_results[0]?.id;
-          resolve(id);
+          const tmdbData = isMovie ? data.movie_results[0] : data.tv_results[0];
+          resolve(tmdbData);
         },
       });
     });
   } catch (error) {
     console.log(error);
   }
+};
+
+const getTMDBVideos = (tmdbId) => {
+  return new Promise((resolve, reject) => {
+    GM_xmlhttpRequest({
+      method: 'GET',
+      url: `${TMDB_API_URL}/3/movie/${tmdbId}/videos?api_key=${TMDB_API_KEY}&language=en`,
+      onload (res) {
+        const data = JSON.parse(res.responseText);
+        resolve(data.results || []);
+      },
+    });
+  });
 };
 const getIMDBIdByUrl = (imdbLink) => {
   const imdbIdArray = /tt\d+/.exec(imdbLink);
@@ -451,7 +517,9 @@ const getInfoFromMediaInfo = (mediaInfo) => {
   const secondVideoPart = mediaArray.filter(item => item.startsWith('Video #2'));
   const [audioPart, ...otherAudioPart] = mediaArray.filter(item => item.startsWith('Audio'));
   const textPart = mediaArray.filter(item => item.startsWith('Text'));
-  const fileName = getMediaValueByKey('Complete name', generalPart).replace(/\.avi|\.mkv|\.mp4|\.ts/i, '');
+  const completeName = getMediaValueByKey('Complete name', generalPart);
+  const format = completeName?.match(/\.(\w+)$/i)?.[1]?.toLowerCase() ?? '';
+  const fileName = completeName.replace(/\.\w+$/i, '');
   const fileSize = getSize(getMediaValueByKey('File size', generalPart));
   const { videoCodec, hdrFormat, isDV } = getVideoCodecByMediaInfo(videoPart, generalPart, secondVideoPart);
   const { audioCodec, channelName, languageArray } = getAudioCodecByMediaInfo(audioPart, otherAudioPart);
@@ -463,6 +531,8 @@ const getInfoFromMediaInfo = (mediaInfo) => {
   return {
     fileName,
     fileSize,
+    format,
+    subtitles: subtitleLanguageArray,
     videoCodec,
     audioCodec,
     resolution,
@@ -493,8 +563,9 @@ const getResolution = (mediaInfo) => {
     return '576p';
   } else if (width >= 840 || height === 480) {
     return '480p';
+  } else if (width && height) {
+    return `${width}x${height}`;
   } else {
-    // return `${width}x${height}`;
     return '';
   }
 };
@@ -514,7 +585,7 @@ const getMediaTags = (audioCodec, channelName, languageArray, subtitleLanguageAr
   if (hdrFormat) {
     if (hdrFormat.match(/HDR10\+/i)) {
       mediaTags['HDR10+'] = true;
-    } else if (hdrFormat.match(/HDR\+/i)) {
+    } else if (hdrFormat.match(/HDR/i)) {
       mediaTags.HDR = true;
     }
   }
@@ -640,6 +711,7 @@ const getInfoFromBDInfo = (bdInfo) => {
   return {
     fileSize,
     videoCodec,
+    subtitles: subtitleLanguageArray,
     audioCodec,
     resolution,
     mediaTags,
@@ -693,7 +765,7 @@ const getFilterBBCode = (content) => {
   if (content) {
     const bbCodes = htmlToBBCode(content);
     return bbCodes.replace(/\[quote\]((.|\n)*?)\[\/quote\]/g, function (match, p1) {
-      if ((p1 && p1.match(/温馨提示|郑重|PT站|网上搜集|本种子|商业盈利|带宽|寬帶|法律责任|Quote:|正版|商用|注明|后果|负责/))) {
+      if ((p1 && p1.match(/温馨提示|郑重|PT站|网上搜集|本种子|商业盈利|商业用途|带宽|寬帶|法律责任|Quote:|正版|商用|注明|后果|负责/))) {
         return '';
       }
       return match;
@@ -729,7 +801,7 @@ const htmlToBBCode = (node) => {
         case 'LI': {
           const { className } = node;
           if (CURRENT_SITE_INFO.siteType === 'UNIT3D' && className) {
-            pp('[quote]', '[/quote]'); break;
+            return `[quote]${node.textContent.trim()}[/quote]`;
           } else {
             pp('[*]', '\n'); break;
           }
@@ -738,7 +810,8 @@ const htmlToBBCode = (node) => {
         case 'U': { pp('[u]', '[/u]'); break; }
         case 'I': { pp('[i]', '[/i]'); break; }
         case 'DIV': {
-          if (node.className === 'codemain') {
+          const { className } = node;
+          if (className === 'codemain') {
             // 兼容朋友
             if (node.firstChild && node.firstChild.tagName === 'PRE') {
               pp('');
@@ -746,13 +819,23 @@ const htmlToBBCode = (node) => {
             } else {
               pp('\n[quote]', '[/quote]'); break;
             }
+          } else if (className === 'hidden' && CURRENT_SITE_NAME === 'HDT') {
+            pp('\n[quote]', '[/quote]'); break;
+          } else if (className.match('spoiler') && CURRENT_SITE_NAME === 'KG') {
+            if (className === 'spoiler-content') {
+              pp('\n[quote]', '[/quote]');
+            } else if (className === 'spoiler-header') {
+              return '';
+            }
+            break;
           } else {
             pp('\n', '\n'); break;
           }
         }
         case 'P': { pp('\n'); break; }
         case 'BR': {
-          if (CURRENT_SITE_INFO.siteType === 'NexusPHP' && CURRENT_SITE_NAME !== 'OurBits') {
+          if ((CURRENT_SITE_INFO.siteType === 'NexusPHP' && CURRENT_SITE_NAME !== 'OurBits') ||
+           CURRENT_SITE_NAME.match(/^(UHDBits|HDBits)/)) {
             pp('');
           } else {
             pp('\n');
@@ -765,8 +848,12 @@ const htmlToBBCode = (node) => {
         case 'FIELDSET': {
           pp('[quote]', '[/quote]'); break;
         }
+        case 'CENTER': {
+          pp('[center]', '[/center]'); break;
+        }
         case 'TD': {
-          if (CURRENT_SITE_NAME.match(/TTG|HDBits/)) {
+          if (CURRENT_SITE_NAME.match(/^(TTG|HDBits|KG)/) || CURRENT_SITE_NAME === 'HDT' ||
+           CURRENT_SITE_INFO.siteType === 'UNIT3D') {
             pp('[quote]', '[/quote]'); break;
           } else {
             return '';
@@ -774,11 +861,15 @@ const htmlToBBCode = (node) => {
         }
         case 'IMG': {
           let imgUrl = '';
-          const { src } = node;
+          const { src, title } = node;
           const dataSrc = node.getAttribute('data-src') || node.getAttribute('data-echo');
+          // blu等unit3d站点会把:m:转成icon图片
+          if (title === ':m:') {
+            return ':m:';
+          }
           if (dataSrc) {
             imgUrl = dataSrc.match(/(http(s)?:)?\/\//) ? dataSrc : location.origin + '/' + dataSrc;
-          } else if (src && !src.match(/ico_\w+.gif|jinzhuan/)) {
+          } else if (src && !src.match(/ico_\w+.gif|jinzhuan|thumbsup|kralimarko/)) {
             imgUrl = src;
           } else {
             return '';
@@ -796,9 +887,9 @@ const htmlToBBCode = (node) => {
           break;
         }
         case 'A': {
-          const { href } = node;
+          const { href, textContent } = node;
           if (href && href.length > 0) {
-            if (href.match(/javascript:void/)) {
+            if (href.match(/javascript:void/) || (textContent === 'show' && CURRENT_SITE_NAME === 'HDT')) {
               return '';
             } else {
               pp(`[url=${href}]`, '[/url]');
@@ -828,7 +919,7 @@ const htmlToBBCode = (node) => {
       break;
     }
     case 3: {
-      if (node.textContent.trim().match(/^(引用|Quote|代码|代碼|Show|Hide|Hidden text|\[show\])/)) {
+      if (node.textContent.trim().match(/^(引用|Quote|代码|代碼|Show|Hide|Hidden text|Hidden content|\[show\])/)) {
         return '';
       }
       return node.textContent;
@@ -848,7 +939,7 @@ const getTagsFromSubtitle = (title) => {
   if (title.match(/diy/i)) {
     tags.DIY = true;
   }
-  if (title.match(/国配|国语/i)) {
+  if (title.match(/国配|国语|普通话|国粤/i) && !title.match(/多国语言/)) {
     tags.chineseAudio = true;
   }
   if (title.match(/Atoms|杜比全景声/i)) {
@@ -867,7 +958,7 @@ const getTagsFromSubtitle = (title) => {
   if (title.match(/粤/i)) {
     tags.cantoneseAudio = true;
   }
-  if (title.match(/简|繁|中字/i)) {
+  if (title.match(/简繁|繁简|繁体|简体|中字|中英|中文/i)) {
     tags.chineseSubtitle = true;
   }
   if (title.match(/Criterion|CC标准/i)) {
@@ -875,25 +966,26 @@ const getTagsFromSubtitle = (title) => {
   }
   return tags;
 };
-const getBDInfoFromBBCode = (bbcode) => {
-  if (!bbcode) {
-    return '';
+const getBDInfoOrMediaInfo = (bbcode) => {
+  const quoteList = bbcode?.match(/\[quote\](.|\n)+?\[\/quote\]/g) ?? [];
+  let bdinfo = ''; let mediaInfo = '';
+  quoteList.forEach(quote => {
+    const quoteContent = quote.replace(/\[\/?quote\]/g, '').replace(/\u200D/g, '');
+    if (quoteContent.match(/Disc\s?Size|\.mpls/i)) {
+      bdinfo += quoteContent;
+    }
+    if (quoteContent.match(/(Unique\s*ID)|(Codec\s*ID)|(Stream\s*size)/i)) {
+      mediaInfo += quoteContent;
+    }
+  });
+  if (!bdinfo) {
+    bdinfo = bbcode.match(/Disc\s+(Info|Title|Label)[^[]+/i)?.[0] ?? '';
   }
-  const quoteList = bbcode.match(/\[quote(=\w+)?\](.|\n)+?\[\/quote\]/g);
-  let bdInfo = '';
-  if (quoteList && quoteList.length > 0) {
-    quoteList.forEach(quote => {
-      if (quote.match(/Disc\s*Size/i)) {
-        bdInfo += quote.replace(/\[(\/)?(quote|font)(=(\w| )+)?\]/gi, '').trim() + '\n';
-      }
-    });
-  }
-  if (!bdInfo) {
-    bdInfo = bbcode.match(/Disc\s+(Title|Label)[^[]+/i)?.[0] ?? '';
-  }
-  return bdInfo;
+  return {
+    bdinfo,
+    mediaInfo,
+  };
 };
-
 const showNotice = (message) => {
   if (!('Notification' in window) || Notification.permission === 'denied') {
     alert(message.text);
@@ -922,6 +1014,118 @@ const showNotice = (message) => {
 const replaceRegSymbols = (string) => {
   return string.replace(/([*.?+$^[\](){}|\\/])/g, '\\$1');
 };
+// https://greasyfork.org/zh-CN/scripts/389810-rottentomatoes-utility-library-custom-api
+const getRtIdFromTitle = (title, tv, year) => {
+  console.log(title, year);
+  const MAX_YEAR_DIFF = 2;
+  tv = tv || false;
+  year = parseInt(year) || 1800;
+  return new Promise(function (resolve, reject) {
+    GM_xmlhttpRequest({
+      method: 'GET',
+      responseType: 'json',
+      url: `https://www.rottentomatoes.com/api/private/v2.0/search/?limit=2&q=${title}`,
+      onload: (resp) => {
+        const movies = tv ? resp.response.tvSeries : resp.response.movies;
+        if (!Array.isArray(movies) || movies.length < 1) {
+          console.log('no search results');
+          return;
+        }
+        const sorted = movies.concat();
+        if (year && sorted) {
+          sorted.sort((a, b) => {
+            if (Math.abs(a.year - year) !== Math.abs(b.year - year)) {
+              // Prefer closest year to the given one
+              return Math.abs(a.year - year) - Math.abs(b.year - year);
+            } else {
+              return b.year - a.year; // In a tie, later year should come first
+            }
+          });
+        }
+        // Search for matches with exact title in order of proximity by year
+        let bestMatch, closeMatch;
+        for (const m of sorted) {
+          m.title = m.title || m.name;
+          if (m.title.toLowerCase() === title.toLowerCase()) {
+            bestMatch = bestMatch || m;
+            console.log('bestMatch', bestMatch);
+            // RT often includes original titles in parentheses for foreign films, so only check if they start the same
+          } else if (m.title.toLowerCase().startsWith(title.toLowerCase())) {
+            closeMatch = closeMatch || m;
+            console.log('closeMatch', closeMatch);
+          }
+          if (bestMatch && closeMatch) {
+            break;
+          }
+        }
+        // Fall back on closest year match if within 2 years, or whatever the first result was.
+        // RT years are often one year later than imdb, or even two
+        function yearComp (imdb, rt) {
+          return rt - imdb <= MAX_YEAR_DIFF && imdb - rt < MAX_YEAR_DIFF;
+        }
+        if (year && (!bestMatch || !yearComp(year, bestMatch.year))) {
+          if (closeMatch && yearComp(year, closeMatch.year)) {
+            bestMatch = closeMatch;
+          } else if (yearComp(year, sorted[0].year)) {
+            bestMatch = sorted[0];
+          }
+        }
+        bestMatch = bestMatch || closeMatch || movies[0];
+
+        if (bestMatch) {
+          const id = bestMatch && bestMatch.url.replace(/\/s\d{2}\/?$/, ''); // remove season suffix from tv matches
+          const score = bestMatch?.meterScore ?? '0';
+          resolve({
+            id,
+            score,
+          });
+        } else {
+          console.log('no match found on rt');
+          reject(new Error('no suitable match'));
+        }
+      },
+    });
+  });
+};
+const uploadToPtpImg = (imgArray) => {
+  return new Promise((resolve, reject) => {
+    const apiKey = GM_getValue('easy-seed.ptp-img-api-key');
+    if (!apiKey) {
+      showNotice({
+        title: 'ptpimg上传失败',
+        text: '请到配置面板中填入ptpimg的api_key',
+      });
+      return;
+    }
+    const data = `link-upload=${imgArray.join('\n')}&api_key=${apiKey}`;
+    GM_xmlhttpRequest({
+      url: 'https://ptpimg.me/upload.php',
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded;charset=utf-8',
+      },
+      data,
+      onload (res) {
+        if (!res || !res.responseText) {
+          reject(new Error('上传失败，请重试'));
+        }
+        const data = JSON.parse(res.responseText);
+        if (!data) {
+          reject(new Error('上传失败，请重试'));
+        }
+        let imgResultList = [];
+        if (data && data.length) {
+          imgResultList = data.map(img => {
+            return `https://ptpimg.me/${img.code}.${img.ext}`;
+          });
+          resolve(imgResultList);
+        } else {
+          throw new Error('上传失败，请重试');
+        }
+      },
+    });
+  });
+};
 export {
   getUrlParam,
   formatTorrentTitle,
@@ -938,7 +1142,7 @@ export {
   getSourceFromTitle,
   htmlToBBCode,
   getFilterBBCode,
-  getBDInfoFromBBCode,
+  getBDInfoOrMediaInfo,
   getScreenshotsFromBBCode,
   getTagsFromSubtitle,
   getVideoCodecFromTitle,
@@ -949,5 +1153,10 @@ export {
   showNotice,
   getAnotherDoubanInfo,
   replaceRegSymbols,
+  getIMDBData,
+  getTMDBVideos,
+  getRtIdFromTitle,
+  getFilterImages,
+  uploadToPtpImg,
 }
 ;

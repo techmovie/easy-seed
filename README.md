@@ -1,6 +1,8 @@
 # easy-seed
 
-[安装地址](https://greasyfork.org/zh-CN/scripts/423199-easy-seed-pt%E4%B8%80%E9%94%AE%E8%BD%AC%E7%A7%8D)
+[安装地址1](https://greasyfork.org/zh-CN/scripts/423199-easy-seed-pt%E4%B8%80%E9%94%AE%E8%BD%AC%E7%A7%8D)
+
+[安装地址2](https://openuserjs.org/scripts/birdplane/easy-seed_PT%E4%B8%80%E9%94%AE%E8%BD%AC%E7%A7%8D)
 
 [加入Telegram群组](https://t.me/easyseed)
 
@@ -23,14 +25,14 @@
 * 站点搜索启用: 定义需要在页面显示的快速搜索列表。
   
 ## 注意事项
-* 目前对音乐、MV、动漫以及软件书籍的种子转载不支持(分类可能不会自动填写)
+* 目前对音乐、MV、动漫的种子转载不支持(分类可能不会自动填写)
 * 柠檬的上传页只支持电影、剧集、纪录片和MV类别的转载
 * 内站的简介中会有一些跟视频截图无关的图片，虽然做了一些过滤，转载到外站后这些无关的图片可能仍会保留下来，需要手动删除。
 * 大部分外站需要完整的MediaInfo，而部分内站的官组都没提供，转载到外站时，需要手动获取MediaInfo
 * 由于TTG的图片加载策略，需要等页面完全加载完整后再点击转载到其他站，否则种子信息会获取不完整。
 * 由于部分内站上传页的分类填写过于混乱，会有部分种子分类填写不上的问题，欢迎提Issue
 ## 后续计划
-  参考[项目规划](https://github.com/techmovie/easy-seed/projects/1)
+  参考[项目规划](https://github.com/techmovie/easy-seed/projects)
 
   很多站点由于没有账号或者发布权限，欢迎大佬帮忙测试以及提PR
 
@@ -38,7 +40,11 @@
 
 |  站点名   | Source(支持转发到其他站点) | Target(支持其他站点转发到本站) |
 | :-------: | :------------------------: | :----------------------------: |
+|   1PTBA   |             ✅              |               ✅                |
+|   52pt    |             ✅              |               ✅                |
 |    ACM    |             ✅              |               ✅                |
+|  Aither   |             ✅              |               ✅                |
+|    bB     |             ❌              |               ✅                |
 | BTSCHOOL  |             ✅              |               ✅                |
 |  BeiTai   |             ✅              |               ❌                |
 | BeyondHD  |             ✅              |               ✅                |
@@ -56,9 +62,11 @@
 |  HDPOST   |             ✅              |               ✅                |
 |  HDRoute  |             ❌              |               ✅                |
 |   HDSky   |             ✅              |               ✅                |
-|    HDT    |             ❌              |               ✅                |
+|    HDT    |             ✅              |               ✅                |
 |    HDU    |             ✅              |               ✅                |
+|    iTS    |             ❌              |               ✅                |
 | KEEPFRDS  |             ✅              |               ❌                |
+|    KG     |             ✅              |               ❌                |
 |  LemonHD  |             ✅              |               ✅                |
 |   MTeam   |             ✅              |               ✅                |
 |   NYPT    |             ✅              |               ✅                |
@@ -68,8 +76,22 @@
 |  PTSBAO   |             ✅              |               ✅                |
 |   PTer    |             ✅              |               ✅                |
 |    SSD    |             ✅              |               ✅                |
-| SoulVoice |             ❌              |               ✅                |
+| SoulVoice |             ✅              |               ✅                |
 |   TCCF    |             ✅              |               ✅                |
 |   TJUPT   |             ✅              |               ✅                |
 |    TLF    |             ✅              |               ✅                |
 |    TTG    |             ✅              |               ✅                |
+|  UHDBits  |             ✅              |               ✅                |
+
+
+## 捐赠
+
+如果本项目对你有帮助，不妨通过微信或者支付宝进行小额捐赠，以支持该项目的持续维护和发展。
+
+微信:
+
+<img alt="wechat.png" src="https://ptpimg.me/6zq3va.jpg" width="200">
+
+支付宝:
+
+<img alt="alipay.png" src="https://ptpimg.me/3dw5k6.jpg" width="200">
